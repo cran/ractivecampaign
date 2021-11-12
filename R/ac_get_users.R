@@ -1,23 +1,14 @@
-
-#' Retrieve List of Contacts Custom Field Values
+#' Return list of all existing users
 #'
-#' @param field_id ID of the field the value belongs to.
-#' @param val Value of the custom field for a specific contact
-#'
-#' @return tibble with contacts field values
+#' @return tibble with users metadata
 #' @export
+#' @seealso See \href{https://developers.activecampaign.com/reference?#list-all-users}{ActiveCampaign API documentation}
 #'
 #' @examples
 #' \dontrun{
-#' Sys.setenv('ACTIVECAMPAGN_API_TOKEN' = "YOUR_TOKEN")
-#' Sys.setenv('ACTIVECAMPAGN_API_URL' = "https://<your-account>.api-us1.com")
-#'
-#' contacts <- ac_get_custom_contact_fields_values()
+#' users <- ac_get_users()
 #' }
-ac_get_custom_contact_fields_values <- function(
-  field_id = NULL,
-  val = NULL
-) {
+ac_get_users <- function() {
 
   ac_check_auth()
 
@@ -33,13 +24,11 @@ ac_get_custom_contact_fields_values <- function(
     # send request
     retry(
       {
-        ans <- GET(str_glue("{Sys.getenv('ACTIVECAMPAGN_API_URL')}/api/3/fieldValues"),
+        ans <- GET(str_glue("{Sys.getenv('ACTIVECAMPAGN_API_URL')}/api/3/users"),
                    query = list(limit  = limit,
-                                offset = offset,
-                                "filters[fieldid]" = field_id,
-                                "filters[val]" = val),
+                                offset = offset),
                    add_headers("Api-Token" = Sys.getenv('ACTIVECAMPAGN_API_TOKEN')))
-          },
+        },
         until = ~ status_code(.) == 200,
         interval  = getOption('ractivecampaig.max_tries'),
         max_tries = getOption('ractivecampaig.interval')
@@ -51,7 +40,7 @@ ac_get_custom_contact_fields_values <- function(
       stop(data$message)
     }
 
-    out_data <- tibble(data = data$fieldValues) %>%
+    out_data <- tibble(data = data$users) %>%
                 unnest_wider(data)
 
     is_first_iteration <- FALSE
@@ -66,4 +55,5 @@ ac_get_custom_contact_fields_values <- function(
   res <- bind_rows(res)
 
   return(res)
+
 }

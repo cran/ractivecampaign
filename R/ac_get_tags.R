@@ -1,17 +1,18 @@
-
-#' Retrieve Dictionary of Deal Custom Field
+#' Get list of all tags
 #'
-#' @return tibble with deal custom fields metadata
+#' @param search Filter by name of tag(s)
+#'
+#' @return tibble with tags metadata
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' Sys.setenv('ACTIVECAMPAGN_API_TOKEN' = "YOUR_TOKEN")
-#' Sys.setenv('ACTIVECAMPAGN_API_URL' = "https://<your-account>.api-us1.com")
-#'
-#' deal_fields <- ac_get_custom_deal_fields()
+#' tags <- ac_get_tags()
 #' }
-ac_get_custom_deal_fields <- function() {
+ac_get_tags <- function(
+  search = NULL
+) {
+
 
   ac_check_auth()
 
@@ -27,15 +28,17 @@ ac_get_custom_deal_fields <- function() {
     # send request
     retry(
       {
-      ans <- GET(str_glue("{Sys.getenv('ACTIVECAMPAGN_API_URL')}/api/3/dealCustomFieldMeta"),
-                 query = list(limit  = limit,
-                              offset = offset),
-                 add_headers("Api-Token" = Sys.getenv('ACTIVECAMPAGN_API_TOKEN')))
-    },
+    ans <- GET(str_glue("{Sys.getenv('ACTIVECAMPAGN_API_URL')}/api/3/tags"),
+               query = list(limit  = limit,
+                            offset = offset,
+                            search = search),
+               add_headers("Api-Token" = Sys.getenv('ACTIVECAMPAGN_API_TOKEN')))
+      },
     until = ~ status_code(.) == 200,
     interval  = getOption('ractivecampaig.max_tries'),
     max_tries = getOption('ractivecampaig.interval')
     )
+
 
     data <- content(ans)
 
@@ -43,12 +46,12 @@ ac_get_custom_deal_fields <- function() {
       stop(data$message)
     }
 
-    out_data <- tibble(data = data$dealCustomFieldMeta) %>%
+    out_data <- tibble(data = data$tags) %>%
                 unnest_wider(data)
 
     is_first_iteration <- FALSE
     offset <- offset + limit
-    total  <- data$meta$total
+    total  <- as.numeric(data$meta$total)
     res <- append(res, list(out_data))
 
     Sys.sleep(0.25)
@@ -58,4 +61,5 @@ ac_get_custom_deal_fields <- function() {
   res <- bind_rows(res)
 
   return(res)
+
 }
